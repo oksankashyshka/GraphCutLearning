@@ -225,54 +225,6 @@ int main()
 
 
 	//cv::Scalar WHITE{ 255, 255, 255 }, BLACK{ 0, 0, 0 };
-	//cv::Vec3b vec3 = { 100, 50, 155 };
-	//cv::Vec3b vec34 = { 100, 50, 200 };
-	//
-	//int im_cols = 10, im_rows = 5;
-	//
-	//cv::Mat mask(im_rows, im_cols, CV_8UC3, cv::Scalar(0)); // create black rectangle
-	//
-	//const std::string w_name = "image.png";
-	//const std::string jpg_name = "image.jpg";
-	//const std::string w_name1 = "TEST";
-	/*
-	cv::Mat im = cv::imread(jpg_name, 0);
-
-	cv::namedWindow(w_name, cv::WINDOW_NORMAL);
-	cv::namedWindow(w_name1, cv::WINDOW_NORMAL);
-	
-
-
-	cv::imshow(w_name, im);
-	cv::waitKey(0);
-
-	for (cv::Point p(0, 0); p.x < im.cols - 250; ++p.x)
-	{
-		for (p.y = 50; p.y < im.rows - 350; ++p.y)
-			im.at<uchar>(p) = 240;
-	}
-
-	cv::imshow(w_name, im);
-	cv::waitKey(0);
-
-	cv::imwrite(w_name, mask);
-	
-	cv::Mat cloyn{ cv::imread(w_name) };
-	
-
-
-	cv::imshow(w_name, cloyn);
-	cv::waitKey(0);
-	
-	cloyn.at<cv::Vec3b>(cv::Point(0, 0)) = vec3;
-	
-	cv::imshow(w_name, cloyn);
-	cv::waitKey(0);
-	
-	cv::Mat cloyn1 = cloyn;
-	cv::imshow(w_name1, cloyn1);
-	cv::waitKey(0);
-	*/
 	
 	// point.x responds for number of number of column, 
 	// and point.y responds for number of row.
@@ -284,39 +236,6 @@ int main()
 	{
 		for (p.y = 0; p.y < im_rows - 1; ++p.y)
 			cloyn1.at<cv::Vec3b>(p) = vec34;
-	}
-	
-	//std::cout << "   0  = " <<  (int)vec34.val[0] << "  1  = " << (int)vec34.val[1] << "  2 =  " << (int)vec34.val[2] << std::endl;
-	//
-	//vec34.val[0] >>=  4;
-	//vec34.val[1] >>=  4;
-	//vec34.val[2] >>=  4;
-	//
-	////vec34 = vec34 >> 4;
-	//
-	//std::cout << "   0  = " << (int)vec34.val[0] << "  1  = " << (int)vec34.val[1] << "  2 =  " << (int)vec34.val[2] << std::endl;
-	//
-	cv::imshow(w_name1, cloyn1);
-	cv::waitKey(0);
-	//
-	////cloyn.at<cv::Vec3b>(cv::Point(0, 0)).val[1] = vec3[1];
-	////cloyn.at<cv::Vec3b>(cv::Point(0, 0)).val[2] = vec3[2];
-	//cv::imwrite(w_name, cloyn);
-	//
-	////cloyn.at<cv::Vec3b>(11, 43) = vec3;
-	////cloyn.at<cv::Vec3b>(12, 42) = vec3;
-	////cloyn.at<cv::Vec3b>(11, 42) = vec3;
-	//
-	//cloyn = WHITE;
-	//
-	//cv::imshow(w_name, cloyn);
-	//
-	//cv::waitKey(0);
-	//
-	cv::destroyWindow(w_name);
-	//
-	//
-	//cv::imwrite("image2.png", cloyn);
-	*/
+	}*/
 	
 }
