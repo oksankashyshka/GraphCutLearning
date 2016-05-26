@@ -1,10 +1,9 @@
 #include <iostream>
 
-#include "ProcessImage.hpp"
-
 #include <opencv2/highgui/highgui.hpp>
 #include <string>
 
+#include "ProcessImage.hpp"
 
 #include "Proftimer.hpp"
 
@@ -19,18 +18,18 @@ typedef Graph::weightT weightT;
 typedef Graph::arraySizeT arraySizeT;
 typedef Graph::Nbhd Nbhd;
 
-const Scalar RED = Scalar(0, 0, 255),
-GREEN = Scalar(0, 255, 0),
-BLUE = Scalar(255, 0, 0),
-BLACK = Scalar(0, 0, 0),
-WHITE = Scalar(255, 255, 255);
-const int RADIUS = 3, LSIZE = -1;
+const cv::Scalar RED = Scalar(0, 0, 255),
+GREEN = cv::Scalar(0, 255, 0),
+BLUE  = cv::Scalar(255, 0, 0),
+BLACK = cv::Scalar(0, 0, 0),
+WHITE = cv::Scalar(255, 255, 255);
+const int RADIUS = 2, LSIZE = -1;
 
-const string wName = "image";
+const std::string wName = "image";
 HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-Mat image, view;
-std::vector<cv::Point> objPIX, bkgPIX;
-vector<myPoint> objPx, bkgPx;
+cv::Mat image, view;
+//std::vector<cv::Point> objPIX, bkgPIX;
+std::vector<myPoint> objPx, bkgPx;
 int mouseAct = 0;
 
 enum ConsoleColor
@@ -62,10 +61,10 @@ void redraw()
 {
 	static Mat view;
 	image.copyTo(view);
-	for (auto p : objPIX)
-		circle(view, p, RADIUS, GREEN, LSIZE);
-	for (auto p : bkgPIX)
-		circle(view, p, RADIUS, BLUE, LSIZE);
+	for (auto p : objPx)
+		circle(view, cv::Point(p.y, p.x), RADIUS, GREEN, LSIZE);
+	for (auto p : bkgPx)
+		circle(view, cv::Point(p.y, p.x), RADIUS, BLUE, LSIZE);
 
 	imshow(wName, view);
 }
@@ -78,7 +77,7 @@ void mouseProc(int event, int x, int y, int flags, void* param)
 		mouseAct = 1;
 		if (x >= 0 && y >= 0 && x < image.cols && y < image.rows)
 		{
-			objPIX.emplace_back(x, y);
+			objPx.emplace_back(myPoint(x, y));
 			redraw();
 		}
 		break;
@@ -86,7 +85,7 @@ void mouseProc(int event, int x, int y, int flags, void* param)
 		mouseAct = 2;
 		if (x >= 0 && y >= 0 && x < image.cols && y < image.rows)
 		{
-			bkgPIX.emplace_back(x, y);
+			bkgPx.emplace_back(myPoint(x, y));
 			redraw();
 		}
 		break;
@@ -99,9 +98,9 @@ void mouseProc(int event, int x, int y, int flags, void* param)
 			if (x >= 0 && y >= 0 && x < image.cols && y < image.rows)
 			{
 				if (mouseAct == 1)
-					objPIX.emplace_back(x, y);
+					objPx.emplace_back(myPoint(x, y));
 				else if (mouseAct == 2)
-					objPIX.emplace_back(x, y);
+					bkgPx.emplace_back(myPoint(x, y));
 				redraw();
 			}
 		break;
@@ -144,47 +143,51 @@ int main()
 
 	redraw();
 	waitKey(0);
-	std::vector<myPoint> vecNeighbors;
-	std::vector<cv::Point> vecNeighborsP;
-	vecNeighbors.emplace_back(1, 0);
-	vecNeighbors.emplace_back(0, 1);
+	std::vector<myPoint> vecNeighborsP;
+//	std::vector<cv::Point> vecNeighborsP;
+	vecNeighborsP.emplace_back(1, 0);
+	vecNeighborsP.emplace_back(0, 1);
 
 	setMouseCallback(wName, mouseProc, 0);
 
 	for (int i = 0; i < objPx.size(); i++)
 		for (int j = i + 1; j < objPx.size(); j++)
 		{ // stupid delete for equal pixels
-			if ((objPx[i].y == objPx[j].y) && (objPx[i].x == objPx[j].x))
+			while ((j < objPx.size()) && (objPx[i].y == objPx[j].y) && (objPx[i].x == objPx[j].x))
 				objPx.erase(objPx.begin() + j);
 		}
 
 	for (int i = 0; i < bkgPx.size(); i++)
 		for (int j = i + 1; j < bkgPx.size(); j++)
 		{ // another stupid delete for equal pixels
-			if ((bkgPx[i].y == bkgPx[j].y) && (bkgPx[i].x == bkgPx[j].x))
+			while ((j < bkgPx.size()) && (bkgPx[i].y == bkgPx[j].y) && (bkgPx[i].x == bkgPx[j].x))
 				bkgPx.erase(bkgPx.begin() + j);
 		}
 
+	int i = 0;
 	std::cout << "ObjPicselsP\n";
-	for (auto pix : objPIX)
+	for (auto pix : objPx)
 	{
-		std::cout << pix << std::endl;
+		std::cout << i << ". x =  " << pix.x << ", y = " << pix.y << std::endl;
+		++i;
 	}
 
+	i = 0;
 	std::cout << "\nBkgPicsels\n";
-	for (auto pix : bkgPIX)
+	for (auto pix : bkgPx)
 	{
-		std::cout << pix << std::endl;
+		std::cout << i << ". x =  " << pix.x << ", y = " << pix.y << std::endl;
+		++i;
 	}
 
 	cout << "Graph creation...\n";
 	ProfTimer t1;
 	t1.start();
-	Graph gr = ImageToGraph(image, objPx, bkgPx, vecNeighbors, 0.3, 10);
+	Graph gr = imageToGraph(image, objPx, bkgPx, vecNeighborsP, 0.3, 10.0);
 	t1.check();
 	double time_create_gr = t1.getDur();
 
-	cout << endl << "\ndone\n";
+	std::cout << std::endl << "\ndone\n";
 	ProfTimer t2;
 	t2.start();
 	GraphCut grc(gr);
@@ -222,7 +225,6 @@ int main()
 	destroyWindow("bgd");
 	destroyAllWindows();
 	std::cin.get();
-
 
 	//cv::Scalar WHITE{ 255, 255, 255 }, BLACK{ 0, 0, 0 };
 	

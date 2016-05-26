@@ -29,7 +29,7 @@ const weightT DefaultLinkWghtFunc(const coordinateT x1, const coordinateT y1,
 	const coordinateT x2, const coordinateT y2,
 	const colourT r2, const colourT g2, const colourT b2, const weightT sqr_sigmaX2);
 
-Graph ImageToGraph(const cv::Mat& image, const std::vector<myPoint>& vecObjSeeds,
+Graph imageToGraph(const cv::Mat& image, const std::vector<myPoint>& vecObjSeeds,
 	const std::vector<myPoint>& vecBkgSeeds, std::vector<myPoint>& vecNeighbors,
 	const weightT lambda = 0.7, const weightT sigma = 100.0, 
 	terminalWeightFunc = DefaultSourceWghtFunc,	terminalWeightFunc = DefaultSinkWghtFunc, 

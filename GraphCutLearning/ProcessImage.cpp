@@ -42,10 +42,10 @@ namespace
 		static cv::Mat view; // This one I may delete in future
 		image.copyTo(view);
 		for (auto p : obj_pix)
-			cv::circle(view, {p.x, p.y}, RADIUS, OBJECT_COLOR, LSIZE);
+			cv::circle(view, {p}, RADIUS, OBJECT_COLOR, LSIZE);
 
 		for (auto p : bkg_pix)
-			cv::circle(view, {p.x, p.y}, RADIUS, BACKGR_COLOR, LSIZE);
+			cv::circle(view, {p}, RADIUS, BACKGR_COLOR, LSIZE);
 
 		imshow(wName, view);
 	}

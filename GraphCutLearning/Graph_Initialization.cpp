@@ -83,7 +83,7 @@ const weightT DefaultSinkWghtFunc(const coordinateT x, const coordinateT y,
 		return bkgSeed_map[i_Color] * lambda;
 }
 
-Graph ImageToGraph(const cv::Mat& image, const std::vector<myPoint>& objSeeds,
+Graph imageToGraph(const cv::Mat& image, const std::vector<myPoint>& objSeeds,
 	const std::vector<myPoint>& bkgSeeds, std::vector<myPoint>& neighborhood,
 	const weightT lambda, const weightT sigma, terminalWeightFunc WeightSource,
 	terminalWeightFunc WeightSink, linkWeightFunc LinkWghtFunc)
