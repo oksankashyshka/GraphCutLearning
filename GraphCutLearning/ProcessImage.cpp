@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include "ProcessImage.hpp"
 
@@ -140,7 +141,7 @@ namespace
 		for (int i = 0; i < LEN_VEC3B; ++i)
 		{
 			vec3b_input.val[i] >>= shift_right;
-			color = color + ((int)vec3b_input.val[i] << ((sizeof(vec3b_input.val[i])*CHAR_BIT - shift_right) * i));
+			color = color + ((int)vec3b_input.val[i] << ((sizeof(vec3b_input.val[i]) * CHAR_BIT - shift_right) * i));
 		}
 		return color;
 	}
@@ -160,6 +161,38 @@ namespace
 			map_to_write[color] = 1.0;
 		else
 			map_to_write[color] += 1.0;
+	}
+
+	void rotateImage(cv::Mat& mask, int angle = 90, const int scale = 1)
+	{
+		int width = image.size().width,
+			height = image.size().height;
+		cv::Mat rot = cv::getRotationMatrix2D(cv::Point2f(0, 0), angle, scale);// / scale; //scale later
+		double sinv = rot.at<double>(0, 1),
+			cosv = rot.at<double>(0, 0);
+		rot.at<double>(1, 2) = width*sinv;  //adjust row offset
+
+		cv::Size dstSize(width*cosv + height*sinv, width*sinv + height*cosv);
+	
+		cv::Mat dst;
+
+		cv::warpAffine(image, dst, rot, dstSize);
+		cv::resize(dst, dst, cv::Size(), scale, scale);  //scale now
+		image = dst;
+
+		// now we rotate mask
+		width = mask.size().width,
+			height = mask.size().height;
+		rot = cv::getRotationMatrix2D(cv::Point2f(0, 0), angle, scale);// / scale; //scale later
+		sinv = rot.at<double>(0, 1),
+			cosv = rot.at<double>(0, 0);
+		rot.at<double>(1, 2) = width*sinv;  //adjust row offset
+
+		dstSize = cv::Size(width*cosv + height*sinv, width*sinv + height*cosv);
+
+		cv::warpAffine(mask, dst, rot, dstSize);
+		cv::resize(dst, dst, cv::Size(), scale, scale);  //scale now
+		mask = dst;
 	}
 
 }
@@ -321,16 +354,19 @@ void getPrOfLabels(const std::size_t start_range, const std::size_t end_of_range
 
 		image = cv::imread(path_to_img.string() + std::to_string(i) + ".jpg", 0);
 
-		cv::namedWindow("windoY", cv::WINDOW_NORMAL);
+//		cv::namedWindow("windoY", cv::WINDOW_NORMAL);
 
-		cv::imshow("windoY", image);
-		cv::waitKey(0);
+	//	cv::imshow("windoY", image);
+		//cv::waitKey(0);
 
 		mask = cv::imread(path_to_segm.string() + std::to_string(i) + ".png");
 
 		setPixProb(pix_color_prob, mask, shift_per_channel);
-		//setVerticalNeighPixProb(vertical_neighbor_pr, mask, shift_per_channel);
+		setVerticalNeighPixProb(vertical_neighbor_pr, mask, shift_per_channel);
+		
 		//rotate image to 90grad and use setVerticalNeighPixProb with horizontal map
+		rotateImage(mask);
+		setVerticalNeighPixProb(horizontal_neighbor_pr, mask, shift_per_channel);
 	}
 }
 
@@ -362,9 +398,5 @@ bool getInfoFromImage(const std::string& name_file, image_model_T model_image)
 
 
 	}
-
-
-
-
 
 }*/

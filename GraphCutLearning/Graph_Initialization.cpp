@@ -99,8 +99,6 @@ Graph imageToGraph(const imgT& image, const vec_pointT& objSeeds,
 	const weightT lambda, const weightT sigma, terminalWeightF weightSourceF,
 	terminalWeightF weightSinkF, linkWeightF weightLinkF)
 {
-	//int i = 0, j = 0, x = 0, y = 0;
-
 	//delete symetric neighborhoods
 	for (int i = 0; i < neighborhood.size(); ++i)
 		for (int j = i + 1; j < neighborhood.size(); ++j)
