@@ -6,76 +6,73 @@ typedef Graph::arraySizeT arraySizeT;
 
 namespace
 {
-	static std::map < int, weightT > objSeed_map;
-	static std::map < int, weightT > bkgSeed_map;
+	typedef std::map < int, weightT > seedT;
+
+	static seedT objSeed_map, bkgSeed_map;
+
+	void setMapSeeds(const cv::Mat& image, const vec_pointT& vecSeeds,
+		seedT& mapSeeds)
+	{
+		rgbT pixelRGB;
+		int i_Color = 0;
+		auto iteratMap = std::begin(mapSeeds);
+		//calculate number of similar colours
+		for (int i = 0; i < vecSeeds.size(); i++)
+		{
+			pixelRGB = image.at<rgbT>(vecSeeds[i].x, vecSeeds[i].y);
+
+			i_Color = ((int)pixelRGB.val[2]) << 16;
+			i_Color += ((int)pixelRGB.val[1]) << 8;
+			i_Color += (int)pixelRGB.val[0];//unique number - its colour
+
+			iteratMap = mapSeeds.find(i_Color);
+
+			if (iteratMap == mapSeeds.end())
+				mapSeeds[i_Color] = 1.0;
+			else
+				mapSeeds[i_Color] += 1.0;
+		}
+
+		//calculate - ln Pr()
+		for (iteratMap = mapSeeds.begin(); iteratMap != mapSeeds.end(); iteratMap++)
+		{
+			mapSeeds[iteratMap->first] = -std::log((iteratMap->second) / vecSeeds.size());
+		}
+	}
+
 }
 
-const weightT DefaultLinkWghtFunc(const coordinateT x1, const coordinateT y1,
-	const colourT r1, const colourT g1, const colourT b1, 
-	const coordinateT x2, const coordinateT y2, 
-	const colourT r2, const colourT g2, const colourT b2,
-	const weightT sqr_sigmaX2)
+weightT linkDefWeight(const pixelT& pixel_I, const pixelT& pixel_II, const weightT sqr_sigmaX2)
 {
-	weightT deltaR = (weightT)r1 - (weightT)r2;
-	weightT deltaG = (weightT)g1 - (weightT)g2;
-	weightT deltaB = (weightT)b1 - (weightT)b2;
-	weightT deltaX = (weightT)x1 - (weightT)x2;
-	weightT deltaY = (weightT)y1 - (weightT)y2;
+	weightT deltaX = (weightT)pixel_I.first.x - (weightT)pixel_II.first.x;
+	weightT deltaY = (weightT)pixel_I.first.y - (weightT)pixel_II.first.y;
+	weightT deltaB = (weightT)pixel_I.second.val[0] - (weightT)pixel_II.second.val[0];
+	weightT deltaG = (weightT)pixel_I.second.val[1] - (weightT)pixel_II.second.val[1];
+	weightT deltaR = (weightT)pixel_I.second.val[2] - (weightT)pixel_II.second.val[2];
+
 	weightT distRGB = deltaR * deltaR + deltaB * deltaB + deltaG * deltaG;
 	weightT distXY = deltaX * deltaX + deltaY * deltaY;
 	
 	return (weightT)((std::exp(-distRGB / sqr_sigmaX2)) / (std::sqrtf(distRGB + distXY)));
 }
 
-void SetMapSeeds(const cv::Mat& image, const std::vector <myPoint>& vecSeeds,
-	std::map < int, weightT >& mapSeeds)
+weightT sourceDefWeight(const pixelT& pixel, const weightT lambda)
 {
-	cv::Vec3b pixelRGB;
-	int i_Color = 0;
-	auto iteratMap = std::begin(mapSeeds);
-	//calculate number of similar colours
-	for (int i = 0; i < vecSeeds.size(); i++)
-	{
-		pixelRGB = image.at<cv::Vec3b>(vecSeeds[i].x, vecSeeds[i].y);
-
-		i_Color = ((int)pixelRGB.val[2]) << 16;
-		i_Color += ((int)pixelRGB.val[1]) << 8;
-		i_Color += (int)pixelRGB.val[0];//unique number - its colour
-
-		iteratMap = mapSeeds.find(i_Color);
-
-		if (iteratMap == mapSeeds.end())
-			mapSeeds[i_Color] = 1.0;
-		else
-			mapSeeds[i_Color] += 1.0;
-	}
-
-	//calculate - ln Pr()
-	for (iteratMap = mapSeeds.begin(); iteratMap != mapSeeds.end(); iteratMap++)
-	{
-		mapSeeds[iteratMap->first] = -std::log((iteratMap->second) / vecSeeds.size());
-	}
-}
-
-const weightT DefaultSourceWghtFunc(const coordinateT x, const coordinateT y,
-	const colourT r, const colourT g, const colourT b, const weightT lambda)
-{
-	int i_Color = ((int)r) << 16;
-	i_Color += ((int)g) << 8;
-	i_Color += (int)b;//unique number
-	std::map < int, weightT > ::iterator iteratMap = objSeed_map.find(i_Color);
+	int i_Color = pixel.second.val[2] << 16;
+	i_Color += pixel.second.val[1] << 8;
+	i_Color += (int)pixel.second.val[0];//unique number
+	auto iteratMap = objSeed_map.find(i_Color);
 	if (iteratMap == std::end(objSeed_map))
 		return 0;
 	else
 		return objSeed_map[i_Color] * lambda;
 }
 
-const weightT DefaultSinkWghtFunc(const coordinateT x, const coordinateT y,
-	const colourT r, const colourT g, const colourT b, const weightT lambda)
+weightT sinkDefWeight(const pixelT& pixel, const weightT lambda)
 {
-	int i_Color = ((int)r) << 16;
-	i_Color += ((int)g) << 8;
-	i_Color += (int)b;//unique number
+	int i_Color = pixel.second.val[2] << 16;
+	i_Color += pixel.second.val[1] << 8;
+	i_Color += (int)pixel.second.val[0];//unique number
 	auto iterat = bkgSeed_map.find(i_Color);
 	if (iterat == std::end(bkgSeed_map))
 		return 0;
@@ -83,10 +80,10 @@ const weightT DefaultSinkWghtFunc(const coordinateT x, const coordinateT y,
 		return bkgSeed_map[i_Color] * lambda;
 }
 
-Graph imageToGraph(const cv::Mat& image, const std::vector<myPoint>& objSeeds,
-	const std::vector<myPoint>& bkgSeeds, std::vector<myPoint>& neighborhood,
-	const weightT lambda, const weightT sigma, terminalWeightFunc WeightSource,
-	terminalWeightFunc WeightSink, linkWeightFunc LinkWghtFunc)
+Graph imageToGraph(const imgT& image, const vec_pointT& objSeeds,
+	const vec_pointT& bkgSeeds, vec_pointT& neighborhood,
+	const weightT lambda, const weightT sigma, terminalWeightF weightSourceF,
+	terminalWeightF weightSinkF, linkWeightF weightLinkF)
 {
 	int i = 0, j = 0, x = 0, y = 0;
 
@@ -106,15 +103,15 @@ Graph imageToGraph(const cv::Mat& image, const std::vector<myPoint>& objSeeds,
 	const arraySizeT nodenum = rowsXcols + 2;
 	const arraySizeT linknum = rowsXcols * (2 + neighborhood.size());//m*n*k/2 + m*n + m*n
 
-	const terminalWeightFunc funcs_Terminal[2] = { WeightSource, WeightSink };
+	const terminalWeightF funcs_Terminal[2] = { weightSourceF, weightSinkF };
 
-	if (WeightSource == DefaultSourceWghtFunc)
-		SetMapSeeds(image, objSeeds, objSeed_map);
+	if (weightSourceF == sourceDefWeight)
+		setMapSeeds(image, objSeeds, objSeed_map);
 
-	if (WeightSink == DefaultSinkWghtFunc)
-		SetMapSeeds(image, bkgSeeds, bkgSeed_map);
+	if (weightSinkF == sinkDefWeight)
+		setMapSeeds(image, bkgSeeds, bkgSeed_map);
 
-	cv::Vec3b pixelRGB1, pixelRGB2;//for taking RGB values
+	rgbT pixelRGB1, pixelRGB2;//for taking RGB values
 	coordinateT x2 = 0, y2 = 0;//coordinates for temporary using
 
 	Graph graph(nodenum, linknum);
@@ -148,7 +145,7 @@ Graph imageToGraph(const cv::Mat& image, const std::vector<myPoint>& objSeeds,
 			for (y = 0; y < image.cols; y++) // FOR EACH COL
 			{
 
-				pixelRGB1 = image.at<cv::Vec3b>(x, y);
+				pixelRGB1 = image.at<rgbT>(x, y);
 				numNbhd = x * image.cols + y + 2;
 
 				//int r = (int)pixelRGB1.val[2];
@@ -162,8 +159,7 @@ Graph imageToGraph(const cv::Mat& image, const std::vector<myPoint>& objSeeds,
 				graph[i].nb[numNbhd - 2].n = &graph[numNbhd];
 
 				graph[i].nb[numNbhd - 2].link = massCounter[i];
-				graph(massCounter[i]) = funcs_Terminal[i](x, y, 
-					pixelRGB1.val[2], pixelRGB1.val[1], pixelRGB1.val[0], lambda);
+				graph(massCounter[i]) = funcs_Terminal[i]({ myPoint(x, y), pixelRGB1}, lambda);
 				//set neighbors: Vertice   -> terminal
 
 				graph[numNbhd].nb[i].last = (bool)i;
@@ -190,14 +186,14 @@ Graph imageToGraph(const cv::Mat& image, const std::vector<myPoint>& objSeeds,
 		{
 			for (y = 0; y < image.cols; y++) // FOR EACH COL
 			{
-				pixelRGB1 = image.at<cv::Vec3b>(x, y);
+				pixelRGB1 = image.at<rgbT>(x, y);
 
 				x2 = x + neighborhood[i].x;
 				y2 = y + neighborhood[i].y;
 
 				if ((y2 >= 0) && (x2 >= 0) && (x2 < image.rows) && (y2 < image.cols))//if point is not valid
 				{
-					pixelRGB2 = image.at<cv::Vec3b>(x2, y2);
+					pixelRGB2 = image.at<rgbT>(x2, y2);
 
 					tmpPlace = x  * image.cols + y + 2;//number of our vertice(x, y) in node arr
 					numNbhd = x2 * image.cols + y2 + 2;//number of our neighbor vertice(x2, y2) in node arr
@@ -209,9 +205,8 @@ Graph imageToGraph(const cv::Mat& image, const std::vector<myPoint>& objSeeds,
 					graph[tmpPlace].nb[graph[tmpPlace].tag].n = &graph[numNbhd];
 					graph[tmpPlace].nb[graph[tmpPlace].tag].link = massCounter[2];
 
-					graph(massCounter[2]) = LinkWghtFunc(y, x, 
-						pixelRGB1.val[2], pixelRGB1.val[1], pixelRGB1.val[0], y2, x2, 
-						pixelRGB2.val[2], pixelRGB2.val[1], pixelRGB2.val[0], sqr_sigmaX2);
+					graph(massCounter[2]) = weightLinkF({ myPoint(y, x), pixelRGB1 }, 
+						{ myPoint(y2, x2), pixelRGB2 }, sqr_sigmaX2);
 
 					//our vertice(x, y) is also neighbor to its neighbor vertice(x2, y2)
 					graph[numNbhd].nb[graph[numNbhd].tag].last = false;
