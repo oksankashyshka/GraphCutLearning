@@ -99,11 +99,11 @@ Graph imageToGraph(const imgT& image, const vec_pointT& objSeeds,
 	const weightT lambda, const weightT sigma, terminalWeightF weightSourceF,
 	terminalWeightF weightSinkF, linkWeightF weightLinkF)
 {
-	int i = 0, j = 0, x = 0, y = 0;
+	//int i = 0, j = 0, x = 0, y = 0;
 
 	//delete symetric neighborhoods
-	for (int i = 0; i < neighborhood.size(); i++)
-		for (j = i + 1; j < neighborhood.size(); j++)
+	for (int i = 0; i < neighborhood.size(); ++i)
+		for (int j = i + 1; j < neighborhood.size(); ++j)
 		{
 			if ((neighborhood[i].y == -neighborhood[j].y) 
 				&& (neighborhood[i].x == -neighborhood[j].x))
@@ -132,7 +132,7 @@ Graph imageToGraph(const imgT& image, const vec_pointT& objSeeds,
 	Graph graph(nodenum, linknum);
 
 	//initialize memory for neighbors of vertices
-	for (i = 0; i < num_terminals; i++)
+	for (int i = 0; i < num_terminals; ++i)
 	{
 		graph[i].nb = new Graph::Nbhd[rowsXcols];
 	}
@@ -143,7 +143,7 @@ Graph imageToGraph(const imgT& image, const vec_pointT& objSeeds,
 	graph[1].place = 1;
 
 	arraySizeT numNbhd = neighborhood.size() * 2 + 2;//number of neighbors per vertice
-	for (i = num_terminals; i < nodenum; i++)
+	for (int i = num_terminals; i < nodenum; ++i)
 	{
 		graph[i].nb = new Graph::Nbhd[numNbhd];
 		graph[i].place = i;//place in Node array  //graph[i].tag   = -1;//must be i - 2
@@ -153,15 +153,15 @@ Graph imageToGraph(const imgT& image, const vec_pointT& objSeeds,
 	arraySizeT massCounter[3] = { 0, rowsXcols, rowsXcols * 2 };//our counters for place in linkweigh for all nodes
 
 	//initialize neighbors for terminals
-	for (i = 0; i < num_terminals; i++)//FOR EACH TERMINAL
+	for (int i = 0; i < num_terminals; ++i)//FOR EACH TERMINAL
 	{
-		for (x = 0; x < image.rows; x++) // FOR EACH ROW
+		for (int x = 0; x < image.rows; ++x) // FOR EACH ROW
 		{
-			for (y = 0; y < image.cols; y++) // FOR EACH COL
+			for (int y = 0; y < image.cols; ++y) // FOR EACH COL
 			{
 
 				pixelRGB1 = image.at<rgbT>(x, y);
-				numNbhd = x * image.cols + y + 2;
+				numNbhd = x * image.cols + y + num_terminals;
 
 				//set neighbors: Termainal -> vertice
 				graph[i].nb[numNbhd - num_terminals].last = false;
@@ -189,11 +189,11 @@ Graph imageToGraph(const imgT& image, const vec_pointT& objSeeds,
 
 	weightT sqr_sigmaX2 = sigma * sigma * 2;
 
-	for (i = 0; i < neighborhood.size(); i++)
+	for (int i = 0; i < neighborhood.size(); ++i)
 	{
-		for (x = 0; x < image.rows; x++) // FOR EACH ROW
+		for (int x = 0; x < image.rows; ++x) // FOR EACH ROW
 		{
-			for (y = 0; y < image.cols; y++) // FOR EACH COL
+			for (int y = 0; y < image.cols; ++y) // FOR EACH COL
 			{
 				pixelRGB1 = image.at<rgbT>(x, y);
 
@@ -235,9 +235,9 @@ Graph imageToGraph(const imgT& image, const vec_pointT& objSeeds,
 	weightT tmp_weight = 0.0;
 
 
-	for (i = num_terminals; i < nodenum; i++)
+	for (int i = num_terminals; i < nodenum; ++i)
 	{
-		for (j = num_terminals; j <= graph[i].tag; j++)
+		for (int j = num_terminals; j <= graph[i].tag; ++j)
 			tmp_weight += graph(graph[i].nb[j].link);
 
 		if (tmp_weight > K)
@@ -250,7 +250,7 @@ Graph imageToGraph(const imgT& image, const vec_pointT& objSeeds,
 	K += 1.0;
 
 	//set weight of objSeed to Terminals
-	for (i = 0; i < objSeeds.size(); i++)
+	for (int i = 0; i < objSeeds.size(); ++i)
 	{
 		numNbhd = objSeeds[i].x * image.cols + objSeeds[i].y;// +num_terminals;//number in linkweight
 		graph(numNbhd) = K;
@@ -258,14 +258,14 @@ Graph imageToGraph(const imgT& image, const vec_pointT& objSeeds,
 	}
 
 	//set weight of bkgSeed to Terminals
-	for (i = 0; i < bkgSeeds.size(); i++)
+	for (int i = 0; i < bkgSeeds.size(); ++i)
 	{
 		numNbhd = bkgSeeds[i].x * image.cols + bkgSeeds[i].y;// +num_terminals;//number in linkweight
 		graph(numNbhd) = 0;
 		graph(numNbhd + rowsXcols) = K;
 	}
 
-	for (i = num_terminals; i < nodenum; i++)
+	for (int i = num_terminals; i < nodenum; ++i)
 		graph[i].tag = graph[i].place - num_terminals;
 
 	return graph;
